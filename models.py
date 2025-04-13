@@ -9,14 +9,14 @@ class Cliente(UserMixin, db.Model):
     telefone = db.Column(db.String(20), nullable=False)
     senha = db.Column(db.String(120), nullable=False)
 
-class Agendamentos(db.Model):
+class Agendamentos(UserMixin,db.Model):
     __tablename__ = 'agendamentos'
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.DateTime, nullable=False)
     hora = db.Column(db.String(5), nullable=False)
     descricao = db.Column(db.String(200), nullable=False)
 
-class Clientes_Agendamentos(db.Model):
+class Clientes_Agendamentos(UserMixin,db.Model):
     __tablename__ = 'clientes_agendamentos'
     id = db.Column(db.Integer, primary_key=True)
     idAgendamento = db.Column(db.Integer, db.ForeignKey('agendamentos.id'), nullable=False)

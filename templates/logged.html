@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Lista de Agendamentos</h1>
+<ul>
+    {% for agendamento in agendamentos %}
+        <li>{{ agendamento.nome_cliente }} - {{ agendamento.data }}</li>
+    {% endfor %}
+</ul>
+<a href="{{ url_for('criar_agendamento') }}" class="btn btn-primary">Criar Agendamento</a>
+{% endblock %}
