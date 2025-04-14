@@ -1,0 +1,23 @@
+{% extends 'header.html' %}
+
+{% block content %}
+
+<div class="container">
+    <form action="" method="post">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" name="nome" required class="form-control" placeholder="Seu Nome">
+        <label for="email">Email</label>
+        <div class="input-group">
+            <input type="email" id="email" name="email" required class="form-control" placeholder="Seu Email">
+            <span class="input-group-text" id="basic-addon2">@example.com</span>
+        </div>  
+        
+        <label for="telefone">Telefone</label>
+        <input type="text" id="telefone" name="telefone" required class="form-control" placeholder="Seu Telefone">
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" name="senha" required class="form-control" placeholder="Sua Senha">
+        <input type="submit" value="Logar" class="btn btn-primary">
+        </form>
+</div>
+
+{% endblock %}

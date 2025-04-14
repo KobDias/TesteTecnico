@@ -1,9 +1,77 @@
-{% extends 'base.html' %}
+{% extends 'header.html' %}
 
 {% block content %}
-{% if user.is_authenticated %}
-    {% include 'logged.html' %}
-{% else %}
-    {% include 'needtologin.html' %}
-{% endif %}
+<div class="container mt-5">
+    {% if current_user.is_authenticated %}
+        <h1 class="text-center">Olá, {{ current_user.nome }}!</h1>
+        {% if semanas_com_multiplos %}
+            <div class="alert alert-warning mt-3">
+                <h4>📅 Otimize seus agendamentos!</h4>
+                <p>Você tem múltiplos agendamentos nas seguintes semanas:</p>
+                <ul>
+                    {% for data in semanas_com_multiplos %}
+                    <li>
+                        Semana de {{ data.strftime('%d/%m') }} - 
+                        <a href="{{ url_for('agendamentos') }}?sugestao={{ data.strftime('%Y-%m-%d') }}" 
+                            class="btn btn-sm btn-success">
+                            Marcar novo horário nesta semana
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <p>Sem avisos</p>
+        {% endif %}
+        <h1>Lista de Agendamentos</h1>
+        {% if agendamentos %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Estado</th>
+                        <th>Serviços</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agendamento in agendamentos %}
+                    <tr>
+                        <td>{{ agendamento.cliente.nome }}</td>
+                        <td>{{ agendamento.data.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {{ agendamento.estado.value | capitalize }}
+                        </td>
+                        <td>
+                            {% if agendamento.servicos %}
+                            {% for servico in agendamento.servicos %}
+                                {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            Nenhum serviço selecionado
+                            {% endif %}
+                        </td>
+                        
+                        <td>
+                            <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-warning">Editar</a>
+                            <a href="{{ url_for('excluirAgendamento', id=agendamento.id) }}" class="btn btn-danger">Excluir</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
+        {% endif %}
+        <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+    {% else %}
+        <h1 class="text-center">Olá! Esse é o sistema de agendamentos da Cabeleleila Leila!</h1>
+        <p class="text-center mt-4">Você precisa estar logado para acessar ou criar agendamentos.</p>
+        <div class="col mt-5 text-center">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+            <a href="{{ url_for('cadastro') }}" class="btn btn-primary">Cadastro</a>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'header.html' %}
+
+{% block content %}
+
+<div class="container">
+    <form action="{{ url_for('agendamentos') }}" method="post">
+        <h2 class="mt-4">Criar Agendamento</h2>
+        <div class="form-group">
+            <label for="dataHora">Data e hora: </label>
+            <input type="datetime-local" id="dataHora" name="dataHora" class="form-control" required/>
+
+        </div>
+
+        <div class="form-group">
+            <label>Serviços:</label>
+            {% for servico in servicos %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                        name="servicos" value="{{ servico.id }}" 
+                        id="servicos{{ servico.id }}">
+                <label class="form-check-label" for="servicos{{ servico.id }}">
+                    {{ servico.nome }} - {{ servico.descricao }}
+                </label>
+        </div>
+            {% endfor %}
+        <div class="form-group mt-4">
+            <input type="submit" value="Agendar" class="btn btn-primary">
+        </div>
+    </form>
+</div>
+{% endblock %}

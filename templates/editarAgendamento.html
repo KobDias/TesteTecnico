@@ -1,0 +1,53 @@
+{% extends 'header.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Editar Agendamento</h1>
+    <form method="POST">
+        <div class="form-group">
+            <label for="dataHora">Data e Hora</label>
+            <input type="datetime-local" class="form-control" id="dataHora" name="dataHora" value="{{ agendamento .data.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="estado">Insira o estado do agendamento</label>
+
+            <select class="form-select" id="estado" name="estado">
+                {% for estado in estados %}
+                    <option 
+                        value="{{ estado.name }}" 
+                        {% if estado == agendamento.estado %}selected{% endif %}
+                    >
+                        {{ estado.value | capitalize }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+        </div>
+              
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Serviços:</label>
+        {% for servico in todos_servicos %}
+            <div class="form-check">
+                <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    name="servicos" 
+                    value="{{ servico.id }}" 
+                    id="servico{{ servico.id }}"
+                    {% if servico in agendamento.servicos %}checked{% endif %} 
+                    >
+                <label class="form-check-label" for="servico{{ servico.id }}">
+                    {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

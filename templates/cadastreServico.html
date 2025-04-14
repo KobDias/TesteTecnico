@@ -1,0 +1,17 @@
+{% extends 'header.html' %}
+
+{% block content %}
+
+<div class="container">
+    <form action="" method="post">
+        <label for="nome">Nome do Serviço</label>
+        <input type="text" id="nome" name="nome" required class="form-control" placeholder="Seu Nome">
+        <label for="descricao">Descrição</label>
+        <input type="text" id="descricao" name="descricao" required class="form-control" placeholder="Descrição do Serviço">
+        <label for="preco">Preço</label>
+        <input type="text" id="preco" name="preco" required class="form-control" placeholder="Preço do Serviço">
+        <input type="submit" value="Logar" class="btn btn-primary">
+        </form>
+</div>
+
+{% endblock %}
