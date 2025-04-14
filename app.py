@@ -5,7 +5,6 @@ from db import db
 from datetime import datetime
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 import hashlib
-from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.secret_key = "m04H4H4"
@@ -13,20 +12,15 @@ lm = LoginManager(app)
 lm.login_view = 'login'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cabeleleila.db'
 db.init_app(app)
-migrate = Migrate(app, db)
 
 from models import Cliente, Agendamentos, Servico, Estado
-
-def existe(var):
-    if var == None:
-        return False
-    return True
 
 def hash(txt):
     hash_obj = hashlib.sha256(txt.encode('utf-8'))
     return hash_obj.hexdigest()
 
 @lm.user_loader
+
 def load_user(id):
     cliente = db.session.query(Cliente).filter_by(id=id).first()
     return cliente
@@ -38,14 +32,14 @@ def home():
         agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).order_by(Agendamentos.data.asc()).all()
         hoje = datetime.now()
         
-        semanas = defaultdict(int)
-        semanas_com_multiplos = []
-
+        # Agrupar agendamentos por semana
+        agendamentos_por_semana = defaultdict(list)
         for agendamento in agendamentos:
             ano, semana, _ = agendamento.data.isocalendar()
-            semanas[(ano, semana)] += 1
-            if semanas[(ano, semana)] >= 2:
-                semanas_com_multiplos.append(agendamento.data)
+            agendamentos_por_semana[(ano, semana)].append(agendamento)
+
+        # Filtrar semanas com múltiplos agendamentos
+        semanas_com_multiplos = {semana: ags for semana, ags in agendamentos_por_semana.items() if len(ags) > 1}
 
         agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).all()  # Busca os agendamentos do usuário
         # if agendamentos.data
@@ -160,10 +154,28 @@ def editarAgendamento(id):
             except Exception as e:
                 db.session.rollback()
                 flash(f'Erro ao salvar: {str(e)}', 'error')
+            return redirect(url_for('home'))
     servicos = Servico.query.all()
     return render_template('editarAgendamento.html', agendamento=agendamento, servicos=servicos, estados=Estado, todos_servicos=todos_servicos)
 
-@app.route('/excluirAgendamento/<int:id>', methods=['POST'])
+@app.route('/cancelarAgendamento/<int:id>', methods=['POST', 'GET'])
+@login_required
+def cancelarAgendamento(id):
+    if request.method == 'POST':
+        agendamento = Agendamentos.query.get_or_404(id)
+        dataAgendado = agendamento.data
+        dataHoje = datetime.now()
+        distancia = (dataAgendado - dataHoje).days
+        if abs(distancia) < 2:
+            return "Infelizmente, cancelamentos só podem ser feitos até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
+        else:
+            agendamento.estado = Estado.cancelado
+            db.session.add(agendamento)
+            db.session.commit()
+            return redirect(url_for('home'))
+    return redirect(url_for('home'))
+
+@app.route('/excluirAgendamento/<int:id>', methods=['POST', 'GET'])
 @login_required
 def excluirAgendamento(id):
     agendamento = Agendamentos.query.get_or_404(id)
@@ -184,6 +196,41 @@ def servicos():
         db.session.commit()
         return redirect(url_for('servicos'))
     return render_template('cadastreServico.html', servicos=servicos)
+
+@app.route('/unirAgendamentos/<int:id1>/<int:id2>', methods=['POST'])
+@login_required
+def unirAgendamentos(id1, id2):
+    # Obter os dois agendamentos
+    agendamento1 = Agendamentos.query.get_or_404(id1)
+    agendamento2 = Agendamentos.query.get_or_404(id2)
+
+    # Verificar qual é o mais recente
+    if agendamento1.data > agendamento2.data:
+        mais_recente = agendamento1
+        mais_antigo = agendamento2
+    else:
+        mais_recente = agendamento2
+        mais_antigo = agendamento1
+
+    # Unir os serviços
+    for servico in mais_antigo.servicos:
+        if servico not in mais_recente.servicos:
+            mais_recente.servicos.append(servico)
+
+    # Excluir o agendamento mais antigo
+    db.session.delete(mais_antigo)
+
+    # Salvar as alterações
+    try:
+        db.session.commit()
+        flash('Agendamentos unidos com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao unir agendamentos: {str(e)}', 'error')
+
+    return redirect(url_for('home'))
+
+    
 
 if __name__ == '__main__':
     with app.app_context():

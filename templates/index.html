@@ -9,13 +9,23 @@
                 <h4>📅 Otimize seus agendamentos!</h4>
                 <p>Você tem múltiplos agendamentos nas seguintes semanas:</p>
                 <ul>
-                    {% for data in semanas_com_multiplos %}
+                    {% for semana, agendamentos in semanas_com_multiplos.items() %}
                     <li>
-                        Semana de {{ data.strftime('%d/%m') }} - 
-                        <a href="{{ url_for('agendamentos') }}?sugestao={{ data.strftime('%Y-%m-%d') }}" 
-                            class="btn btn-sm btn-success">
-                            Marcar novo horário nesta semana
-                        </a>
+                        Semana {{ semana[1] }} de {{ semana[0] }}:
+                <ul>
+                    {% for agendamento in agendamentos %}
+                    <li>
+                        {{ agendamento.data.strftime('%d/%m/%Y %H:%M') }} - 
+                        {% for servico in agendamento.servicos %}
+                            {{ servico.nome }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                        <!-- Exemplo de botão no template -->
+                        <form action="{{ url_for('unirAgendamentos', id1=agendamentos[0].id, id2=agendamentos[1].id) }}" method="POST">
+                            <button type="submit" class="btn btn-primary">Unir Agendamentos</button>
+                        </form>
                     </li>
                     {% endfor %}
                 </ul>
@@ -55,7 +65,6 @@
                         
                         <td>
                             <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-warning">Editar</a>
-                            <a href="{{ url_for('excluirAgendamento', id=agendamento.id) }}" class="btn btn-danger">Excluir</a>
                         </td>
                     </tr>
                     {% endfor %}
