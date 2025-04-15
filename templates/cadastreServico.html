@@ -12,6 +12,9 @@
         <input type="number" id="preco" name="preco" required class="form-control" placeholder="Preço do Serviço">
         <input type="submit" value="Cadastrar" class="btn mt-4 btn-primary">
         </form>
+
+        <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+        <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
 </div>
 
 {% endblock %}

@@ -29,13 +29,9 @@
                             {{ agendamento.estado.value | capitalize }}
                         </td>
                         <td>
-                            {% if agendamento.servicos %}
                             {% for servico in agendamento.servicos %}
                                 {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
                             {% endfor %}
-                            {% else %}
-                            <p></p>
-                            {% endif %}
                         </td>
                         <td>
                             {% if agendamento.is_confirmed %}
@@ -53,7 +49,6 @@
                             {% endif %}
                             <a href="{{ url_for('cancelarAgendamento', id=agendamento.id) }}" class="btn btn-outline-warning">Cancelar</a>
                             <a href="{{ url_for('excluirAgendamento', id=agendamento.id) }}" class="btn btn-outline-danger">Excluir</a>
-
                         </td>
                     </tr>
                     {% endfor %}
@@ -62,10 +57,6 @@
         {% else %}
             <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
         {% endif %}
-        <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
-        <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
-        <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
-
         {% else %}
         <div class="card mb-4">
             <div class="card-body">
@@ -88,7 +79,6 @@
                             </li>
                             {% endfor %}
                         </ul>
-                                <!-- Exemplo de botão no template -->
                                 <form action="{{ url_for('unirAgendamentos', id1=agendamentos[0].id, id2=agendamentos[1].id) }}" method="POST">
                                     <div class="form-group mt-3">
                                         <input type="hidden" name="dia1" value="{{ agendamentos[0].data.strftime('%A') }}">
@@ -108,7 +98,6 @@
                 </div>
     </div>
     
-        
         <h1 class="mb-4">Lista de Agendamentos</h1>
         {% if agendamentos %}
             <table class="table">
@@ -118,6 +107,7 @@
                         <th>Data</th>
                         <th>Estado</th>
                         <th>Serviços</th>
+                        <th>Confirmado</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -126,19 +116,28 @@
                     <tr>
                         <td>{{ agendamento.cliente.nome }}</td>
                         <td>{{ agendamento.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
+                        {% if agendamento.estado.value == 'pendente' %}
+                        <td class="bg-success text-white">
                             {{ agendamento.estado.value | capitalize }}
                         </td>
+                        {% else %}
+                        <td class="bg-secondary text-white">
+                            {{ agendamento.estado.value | capitalize }}
+                        </td>
+                        {% endif %}
+
                         <td>
-                            {% if agendamento.servicos %}
                             {% for servico in agendamento.servicos %}
                                 {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
                             {% endfor %}
+                        </td>
+                        <td>
+                            {% if agendamento.is_confirmed %}
+                            <p>Sim</p>
                             {% else %}
-                            <p></p>
+                            <p>Não</p>
                             {% endif %}
                         </td>
-                        
                         <td>
                             <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-outline-success">Editar</a>
                             <a href="{{ url_for('cancelarAgendamento', id=agendamento.id) }}" class="btn btn-outline-danger">Cancelar</a>
@@ -151,6 +150,10 @@
             <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
         {% endif %}
         <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
+        <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
+        {% endif %}
         {% endif %}
     {% else %}
         <h1 class="text-center">Olá! Esse é o sistema de agendamentos da Cabeleleila Leila!</h1>

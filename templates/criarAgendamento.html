@@ -38,5 +38,10 @@
             <input type="submit" value="Agendar" class="btn btn-primary">
         </div>
     </form>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
+    <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
+    {% endif%}
+
 </div>
 {% endblock %}

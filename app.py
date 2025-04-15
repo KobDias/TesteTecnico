@@ -35,10 +35,11 @@ def home():
         else: # se não admin
             # Lógica de avisos de agendamentos na mesma semana
             agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).order_by(Agendamentos.data.asc()).all()
-            
-            # Agrupando agendamentos por semana
-            agendamentos_por_semana = defaultdict(list)
-            for agendamento in agendamentos:
+            agendamentosPendente = Agendamentos.query.filter(Agendamentos.clienteId==current_user.id, Agendamentos.estado == Estado.pendente).order_by(Agendamentos.data.asc()).all()
+
+            agendamentos_por_semana = defaultdict(list) # agendamento por semanas
+            for agendamento in agendamentosPendente:
+                # por semana
                 ano, semana, _ = agendamento.data.isocalendar()
                 agendamentos_por_semana[(ano, semana)].append({
                     'id': agendamento.id,
@@ -46,23 +47,21 @@ def home():
                     'dia_semana': agendamento.data.strftime('%A'),  # Nome do dia da semana
                     'servicos': agendamento.servicos
                 })
+
             # Filtrar semanas com múltiplos agendamentos
             semanas_com_multiplos = {semana: ags for semana, ags in agendamentos_por_semana.items() if len(ags) > 1}
             return render_template('index.html',
-            agendamentos=agendamentos,
-            semanas_com_multiplos=semanas_com_multiplos)    
-        return render_template('index.html',
-            agendamentos=agendamentos)
-    return render_template('index.html')
+            agendamentos=agendamentos, # essa é a lista de agendamentos
+            semanas_com_multiplos=semanas_com_multiplos) 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
-        cliente = db.session.query(Cliente).filter_by(email=email, senha=hash(senha)).first()
+        cliente = db.session.query(Cliente).filter_by(email=email, senha=hash(senha)).first() # compara as infos com o banco
         if cliente: # se realmente cliente
-            login_user(cliente)
+            login_user(cliente) # logar
             return redirect(url_for('home'))
         else:
             return "Email ou senha invalidos"
@@ -77,10 +76,14 @@ def cadastro():
         telefone = request.form['telefone']
         senha = request.form['senha']
 
-        novo_cliente = Cliente(nome=nome, email=email, telefone=telefone, senha=hash(senha))
-        db.session.add(novo_cliente)
+        # carrega as informações e criptografa a senha
+        novoCliente = Cliente(nome=nome, email=email, telefone=telefone, senha=hash(senha))
+
+        #armazena e salva
+        db.session.add(novoCliente)
         db.session.commit()
-        login_user(novo_cliente)
+
+        login_user(novoCliente) # loga depois do cadastro
         return redirect(url_for('home'))
     #GET
     return render_template('cadastro.html')
@@ -104,30 +107,34 @@ def agendamentos():
         if dataHora < datetime.now() or servicos_ids==[]:
             return "Não é possivel marcar uma data passada ou deixar de escolher um serviço!"
 
-        if current_user.is_admin:
+        if current_user.is_admin: #sendo admin, é preciso especificar o cliente
+
             clienteInput = request.form.get('cliente')
             cliente = Cliente.query.get(clienteInput) # pega o cliente 
-            novo_agendamento = Agendamentos(
+
+            novoAgendamento = Agendamentos(
                 clienteId=cliente.id,
                 data=dataHora,       
             )
-        else:
-        # Criar agendamento sem admin
-            novo_agendamento = Agendamentos(
+        else: # não sendo admin, cliente é current_user
+            novoAgendamento = Agendamentos(
                 clienteId=current_user.id,
                 data=dataHora,       
             )
+        
+        #independente do cliente ou data, servicos precisam ser inseridos
         for servico_id in servicos_ids:
-            servico = Servico.query.get(servico_id)
-            if servico:
-                novo_agendamento.servicos.append(servico) # visualiza cada servico checked e append ao novo agendamento
+            servico = Servico.query.get(servico_id) # visualiza cada servico checked
+            novoAgendamento.servicos.append(servico) # append ao novo agendamento
     
-        db.session.add(novo_agendamento)
+        #salva no banco
+        db.session.add(novoAgendamento)
         db.session.commit()
+
         return redirect(url_for('home'))
     #GET
-    todosClientes = Cliente.query.filter_by(is_admin = False).all()
-    todosServicos = Servico.query.all() # Carregar serviços disponíveis para o formulário
+    todosClientes = Cliente.query.filter_by(is_admin = False).all() # carregar os clientes existentes. Não pode ser admin
+    todosServicos = Servico.query.all() # Carregar serviços cadastrados
     return render_template('criarAgendamento.html', servicos=todosServicos, clientes=todosClientes)
 
 @app.route('/editarAgendamento/<int:id>', methods=['GET', 'POST'])
@@ -137,12 +144,13 @@ def editarAgendamento(id):
     todosServicos = Servico.query.all()  # Todos os serviços disponíveis
 
     # verificação
-    dataAgendado = agendamento.data
-    dataHoje = datetime.now()
-    distancia = (dataAgendado - dataHoje).days
-    if abs(distancia) < 2: # se o agendamento for em até dois dias, editarAgendamento não abre
-        return "Infelizmente, edições só podem ser feitas até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
-    elif request.method == 'POST':
+    if not current_user.is_admin:
+        dataAgendado = agendamento.data
+        dataHoje = datetime.now()
+        distancia = (dataAgendado - dataHoje).days
+        if abs(distancia) < 2: # se o agendamento for em até dois dias, editarAgendamento não abre
+            return "Infelizmente, edições só podem ser feitas até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
+    if request.method == 'POST':
         
         # Atualizar os dados do agendamento conforme necessári0
 
@@ -185,19 +193,74 @@ def editarAgendamento(id):
 @app.route('/cancelarAgendamento/<int:id>', methods=['POST', 'GET'])
 @login_required
 def cancelarAgendamento(id):
-    agendamento = Agendamentos.query.get_or_404(id)
-    dataAgendado = agendamento.data
-    dataHoje = datetime.now()
-    distancia = (dataAgendado - dataHoje).days
-    print("Sorriso")
-    if abs(distancia) < 2:
-        return "Infelizmente, cancelamentos só podem ser feitos até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
+    if not current_user.is_admin:
+        agendamento = Agendamentos.query.get_or_404(id)
+        dataAgendado = agendamento.data
+        dataHoje = datetime.now()
+        distancia = (dataAgendado - dataHoje).days
+        print("Sorriso")
+        if abs(distancia) < 2:
+            return "Infelizmente, cancelamentos só podem ser feitos até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
+    agendamento.estado = Estado.cancelado
+    db.session.add(agendamento)
+    db.session.commit()
+    return redirect(url_for('home'))
+
+@app.route('/unirAgendamentos/<int:id1>/<int:id2>', methods=['POST'])
+@login_required
+def unirAgendamentos(id1, id2):
+    # Obter os dois agendamentos
+    agendamento1 = Agendamentos.query.get_or_404(id1)
+    agendamento2 = Agendamentos.query.get_or_404(id2)
+
+    #informações dos forms ocultos
+    dia1 = request.form.get('dia1')
+    dia2 = request.form.get('dia2')
+
+    dias_semana = { # mapeando os dias da semana
+        "Monday": 2,
+        "Tuesday": 3,
+        "Wednesday": 4,
+        "Thursday": 5,
+        "Friday": 6,
+        "Saturday": 7,
+        "Sunday": 1
+    }
+
+    # Verificar qual é o mais recente
+    if dias_semana[dia1] < dias_semana[dia2]:
+        mais_recente = agendamento1
+        mais_antigo = agendamento2
     else:
-        print("batata")
-        agendamento.estado = Estado.cancelado
-        db.session.add(agendamento)
+        mais_recente = agendamento2
+        mais_antigo = agendamento1
+
+    agendamentoUnico = Agendamentos(
+        clienteId=current_user.id,
+        data=mais_recente.data,
+    )
+    uniao = mais_recente.servicos + mais_antigo.servicos # unindo os serviços
+    # Unir os serviços
+    for servico in uniao:
+        if servico not in agendamentoUnico.servicos: # evitar duplicatas
+            agendamentoUnico.servicos.append(servico)
+
+    
+
+    mais_recente.estado = Estado.cancelado
+    mais_antigo.estado = Estado.cancelado
+
+    # Salvar as alterações
+    try:
+        db.session.add(agendamentoUnico)
         db.session.commit()
         return redirect(url_for('home'))
+    except Exception as e:
+        db.session.rollback()
+        return "Erro ao unir agendamentos: " + str(e)
+
+# Apenas ADM
+
 @app.route('/confirmarAgendamento/<int:id>', methods=['GET'])
 @login_required
 def confirmarAgendamento(id):
@@ -238,50 +301,6 @@ def servicos():
         return redirect(url_for('servicos'))
     return render_template('cadastreServico.html', servicos=servicos)
 
-@app.route('/unirAgendamentos/<int:id1>/<int:id2>', methods=['POST'])
-@login_required
-def unirAgendamentos(id1, id2):
-    # Obter os dois agendamentos
-    agendamento1 = Agendamentos.query.get_or_404(id1)
-    agendamento2 = Agendamentos.query.get_or_404(id2)
-    dia1 = request.form.get('dia1')
-    dia2 = request.form.get('dia2')
-
-    dias_semana = {
-        "Monday": 1,
-        "Tuesday": 2,
-        "Wednesday": 3,
-        "Thursday": 4,
-        "Friday": 5,
-        "Saturday": 6,
-        "Sunday": 7
-    }
-
-    # Verificar qual é o mais recente
-    print(f" dia1: {dia1}, dia2")
-    if dias_semana[dia1] > dias_semana[dia2]:
-        mais_recente = agendamento1
-        mais_antigo = agendamento2
-    else:
-        mais_recente = agendamento2
-        mais_antigo = agendamento1
-
-    # Unir os serviços
-    for servico in mais_antigo.servicos:
-        if servico not in mais_recente.servicos:
-            mais_recente.servicos.append(servico)
-
-    # Excluir o agendamento mais antigo
-    db.session.delete(mais_antigo)
-
-    # Salvar as alterações
-    try:
-        db.session.commit()
-        return redirect(url_for('home'))
-    except Exception as e:
-        db.session.rollback()
-        return "Erro ao unir agendamentos: " + str(e)
-
 @app.route('/cadastrarCliente', methods=['POST', 'GET']) 
 @login_required
 def cadastrarCliente():
@@ -318,7 +337,6 @@ if __name__ == '__main__':
             )
             db.session.add(admin)
             db.session.commit()
-            print("Administrador criado com sucesso!")
 
         # Criar serviços padrão, se não existirem
         servicos_padrao = [
@@ -335,5 +353,4 @@ if __name__ == '__main__':
                 servico = Servico(**servico_data)
                 db.session.add(servico)
         db.session.commit()
-        print("Serviços padrão criados com sucesso!")
     app.run(debug=True)
