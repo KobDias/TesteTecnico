@@ -3,27 +3,49 @@
 {% block content %}
 <div class="container mt-5">
     {% if current_user.is_authenticated %}
-        <h1 class="text-center">Olá, {{ current_user.nome }}!</h1>
-        {% if semanas_com_multiplos %}
-            <div class="alert alert-warning mt-3">
-                <h4>📅 Otimize seus agendamentos!</h4>
-                <p>Você tem múltiplos agendamentos nas seguintes semanas:</p>
-                <ul>
-                    {% for data in semanas_com_multiplos %}
-                    <li>
-                        Semana de {{ data.strftime('%d/%m') }} - 
-                        <a href="{{ url_for('agendamentos') }}?sugestao={{ data.strftime('%Y-%m-%d') }}" 
-                            class="btn btn-sm btn-success">
-                            Marcar novo horário nesta semana
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% else %}
-            <p>Sem avisos</p>
-        {% endif %}
-        <h1>Lista de Agendamentos</h1>
+        <h1 class="text-center mb-4">Olá, {{ current_user.nome }}!</h1>
+        <div class="card mb-4">
+            <div class="card-body">
+            <h5 class="card-title text-center">Quadro de Avisos</h5>
+                {% if semanas_com_multiplos %} <!-- se existem semanas com +1 agendamento -->
+                    <div class="alert alert-warning mt-3 text-danger">
+                        <h4>📅 Otimize seus agendamentos!</h4>
+                        <h5>Você tem múltiplos agendamentos nas seguintes semanas:</h5>
+                        <ul>
+                            {% for semana, agendamentos in semanas_com_multiplos.items() %}
+                            <li>
+                                Semana {{ semana[1] }} de {{ semana[0] }}:
+                        <ul>
+                            {% for agendamento in agendamentos %}
+                            <li>
+                                {{ agendamento.data.strftime('%d/%m/%Y %H:%M') }} - 
+                                {% for servico in agendamento.servicos %}
+                                    {{ servico.nome }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                                <!-- Exemplo de botão no template -->
+                                <form action="{{ url_for('unirAgendamentos', id1=agendamentos[0].id, id2=agendamentos[1].id) }}" method="POST">
+                                    <div class="form-group mt-3">
+                                        <input type="hidden" name="dia1" value="{{ agendamentos[0].data.strftime('%A') }}">
+                                        <input type="hidden" name="dia2" value="{{ agendamentos[1].data.strftime('%A') }}">
+                                        <button type="submit" class="btn btn-outline-danger">Unir Agendamentos</button>
+                                    </div>  
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="alert alert-success">
+                        <p>Tudo certo com seus agendamentos!</p>
+                    </div>
+                {% endif %}
+                </div>
+    </div>
+        
+        <h1 class="mb-4">Lista de Agendamentos</h1>
         {% if agendamentos %}
             <table class="table">
                 <thead>
@@ -49,13 +71,13 @@
                                 {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
                             {% endfor %}
                             {% else %}
-                            Nenhum serviço selecionado
+                            <p></p>
                             {% endif %}
                         </td>
                         
                         <td>
-                            <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-warning">Editar</a>
-                            <a href="{{ url_for('excluirAgendamento', id=agendamento.id) }}" class="btn btn-danger">Excluir</a>
+                            <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-outline-success">Editar</a>
+                            <a href="{{ url_for('cancelarAgendamento', id=agendamento.id) }}" class="btn btn-outline-danger">Cancelar</a>
                         </td>
                     </tr>
                     {% endfor %}

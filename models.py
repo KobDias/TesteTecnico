@@ -9,6 +9,7 @@ class Cliente(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     telefone = db.Column(db.String(20), nullable=False)
     senha = db.Column(db.String(120), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)  # Campo para identificar administradores
 
 class Estado(enum.Enum):
         pendente = "pendente"
