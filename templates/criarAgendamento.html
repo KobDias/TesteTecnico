@@ -5,6 +5,17 @@
 <div class="container">
     <form action="{{ url_for('agendamentos') }}" method="post">
         <h2 class="mt-4">Criar Agendamento</h2>
+
+        {% if current_user.is_admin %}
+            <div class="form-group">
+                <label for="cliente">Cliente:</label>
+                <select id="cliente" name="cliente" class="form-control" required>
+                    {% for cliente in clientes %}   
+                    <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
         <div class="form-group">
             <label for="dataHora">Data e hora: </label>
             <input type="datetime-local" id="dataHora" name="dataHora" class="form-control" required/>

@@ -30,26 +30,29 @@ def load_user(id): # pega o id para carregar user
 @app.route('/') # rota home
 def home():
     if current_user.is_authenticated: # se logado
-
-        # Lógica de avisos de agendamentos na mesma semana
-        agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).order_by(Agendamentos.data.asc()).all()
-        
-        # Agrupando agendamentos por semana
-        agendamentos_por_semana = defaultdict(list)
-        for agendamento in agendamentos:
-            ano, semana, _ = agendamento.data.isocalendar()
-            agendamentos_por_semana[(ano, semana)].append({
-                'id': agendamento.id,
-                'data': agendamento.data,
-                'dia_semana': agendamento.data.strftime('%A'),  # Nome do dia da semana
-                'servicos': agendamento.servicos
-            })
-        # Filtrar semanas com múltiplos agendamentos
-        semanas_com_multiplos = {semana: ags for semana, ags in agendamentos_por_semana.items() if len(ags) > 1}
-
-        return render_template('index.html',
+        if current_user.is_admin: # se admin
+            agendamentos = Agendamentos.query.order_by(Agendamentos.data.asc()) # pega todos os agendamentos
+        else: # se não admin
+            # Lógica de avisos de agendamentos na mesma semana
+            agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).order_by(Agendamentos.data.asc()).all()
+            
+            # Agrupando agendamentos por semana
+            agendamentos_por_semana = defaultdict(list)
+            for agendamento in agendamentos:
+                ano, semana, _ = agendamento.data.isocalendar()
+                agendamentos_por_semana[(ano, semana)].append({
+                    'id': agendamento.id,
+                    'data': agendamento.data,
+                    'dia_semana': agendamento.data.strftime('%A'),  # Nome do dia da semana
+                    'servicos': agendamento.servicos
+                })
+            # Filtrar semanas com múltiplos agendamentos
+            semanas_com_multiplos = {semana: ags for semana, ags in agendamentos_por_semana.items() if len(ags) > 1}
+            return render_template('index.html',
             agendamentos=agendamentos,
-            semanas_com_multiplos=semanas_com_multiplos)
+            semanas_com_multiplos=semanas_com_multiplos)    
+        return render_template('index.html',
+            agendamentos=agendamentos)
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -92,6 +95,7 @@ def logout():
 @login_required # criar agendamentos se logado
 def agendamentos():
     if request.method == 'POST':
+
         # Obter dados do formulário
         dataHora = datetime.strptime(request.form.get('dataHora'), '%Y-%m-%dT%H:%M')
         servicos_ids = request.form.getlist('servicos')
@@ -99,23 +103,32 @@ def agendamentos():
         # verifica se dia passado ou servicos estão vazios
         if dataHora < datetime.now() or servicos_ids==[]:
             return "Não é possivel marcar uma data passada ou deixar de escolher um serviço!"
+
+        if current_user.is_admin:
+            clienteInput = request.form.get('cliente')
+            cliente = Cliente.query.get(clienteInput) # pega o cliente 
+            novo_agendamento = Agendamentos(
+                clienteId=cliente.id,
+                data=dataHora,       
+            )
         else:
-        # Criar agendamento
+        # Criar agendamento sem admin
             novo_agendamento = Agendamentos(
                 clienteId=current_user.id,
                 data=dataHora,       
             )
-            for servico_id in servicos_ids:
-                servico = Servico.query.get(servico_id)
-                if servico:
-                    novo_agendamento.servicos.append(servico) # visualiza cada servico checked e append ao novo agendamento
-        
-            db.session.add(novo_agendamento)
-            db.session.commit()
-            return redirect(url_for('home'))
+        for servico_id in servicos_ids:
+            servico = Servico.query.get(servico_id)
+            if servico:
+                novo_agendamento.servicos.append(servico) # visualiza cada servico checked e append ao novo agendamento
+    
+        db.session.add(novo_agendamento)
+        db.session.commit()
+        return redirect(url_for('home'))
     #GET
+    todosClientes = Cliente.query.filter_by(is_admin = False).all()
     todosServicos = Servico.query.all() # Carregar serviços disponíveis para o formulário
-    return render_template('criarAgendamento.html', servicos=todosServicos)
+    return render_template('criarAgendamento.html', servicos=todosServicos, clientes=todosClientes)
 
 @app.route('/editarAgendamento/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -185,14 +198,31 @@ def cancelarAgendamento(id):
         db.session.add(agendamento)
         db.session.commit()
         return redirect(url_for('home'))
+@app.route('/confirmarAgendamento/<int:id>', methods=['GET'])
+@login_required
+def confirmarAgendamento(id):
+    if current_user.is_admin:
+        agendamento = Agendamentos.query.get_or_404(id)
 
-@app.route('/excluirAgendamento/<int:id>', methods=['POST', 'GET'])
+        agendamento.is_confirmed = True
+        db.session.commit()
+
+        return redirect(url_for('home'))
+    else:
+        return "Não administrador"
+
+@app.route('/excluirAgendamento/<int:id>', methods=['GET'])
 @login_required
 def excluirAgendamento(id):
-    agendamento = Agendamentos.query.get_or_404(id)
-    db.session.delete(agendamento)
-    db.session.commit()
-    return redirect(url_for('home'))
+    if current_user.is_admin:
+        agendamento = Agendamentos.query.get_or_404(id)
+
+        db.session.delete(agendamento)
+        db.session.commit()
+        return redirect(url_for('home'))
+    else:
+        return "Você não tem permissão para visualizar essa página"
+
 
 @app.route('/servicos', methods=['GET', 'POST'])
 @login_required
@@ -247,16 +277,63 @@ def unirAgendamentos(id1, id2):
     # Salvar as alterações
     try:
         db.session.commit()
-        flash('Agendamentos unidos com sucesso!', 'success')
+        return redirect(url_for('home'))
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao unir agendamentos: {str(e)}', 'error')
+        return "Erro ao unir agendamentos: " + str(e)
 
-    return redirect(url_for('home'))
+@app.route('/cadastrarCliente', methods=['POST', 'GET']) 
+@login_required
+def cadastrarCliente():
+    if current_user.is_admin:
+        if request.method == 'POST':
+            nome = request.form['nome']
+            email = request.form['email']
+            telefone = request.form['telefone']
+            senha = request.form['senha']
+            adm = request.form.get('adm') # se admin ou não
 
-    
+            novo_cliente = Cliente(nome=nome, email=email, telefone=telefone, senha=hash(senha), is_admin=adm)
+            db.session.add(novo_cliente)
+            db.session.commit()
+            return redirect(url_for('home'))
+        #GET
+        return render_template('cadastreCliente.html')
+    else:
+        return "Você não tem permissão para acessar esta página."
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Criar administrador padrão, se não existir
+        admin_email = "admin@cabeleleila.com"
+        admin = Cliente.query.filter_by(email=admin_email).first()
+        if not admin:
+            admin = Cliente(
+                nome="Administrador",
+                email=admin_email,
+                telefone="000000000",
+                senha=hash("admin123"),  # Senha padrão
+                is_admin=True
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print("Administrador criado com sucesso!")
+
+        # Criar serviços padrão, se não existirem
+        servicos_padrao = [
+            {"nome": "Corte de Cabelo", "preco": 50.0, "descricao": "Corte profissional de cabelo."},
+            {"nome": "Manicure", "preco": 30.0, "descricao": "Manicure completa."},
+            {"nome": "Pedicure", "preco": 40.0, "descricao": "Pedicure completa."},
+            {"nome": "Escova", "preco": 60.0, "descricao": "Escova modeladora."},
+            {"nome": "Design de Sobrancelhas", "preco": 20.0, "descricao": "Design profissional de sobrancelhas."},
+            {"nome": "Maquiagem", "preco": 80.0, "descricao": "Maquiagem completa para eventos."}
+        ]
+        for servico_data in servicos_padrao:
+            servico = Servico.query.filter_by(nome=servico_data["nome"]).first()
+            if not servico:
+                servico = Servico(**servico_data)
+                db.session.add(servico)
+        db.session.commit()
+        print("Serviços padrão criados com sucesso!")
     app.run(debug=True)

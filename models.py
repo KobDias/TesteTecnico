@@ -29,6 +29,8 @@ class Agendamentos(db.Model):
     data = db.Column(db.DateTime, nullable=False)
     estado = db.Column(db.Enum(Estado), default=Estado.pendente, nullable=False)
     cliente = db.relationship('Cliente', backref='agendamentos')
+    is_confirmed = db.Column(db.Boolean, default=False)
+
 
 agendamento_servico = db.Table('agendamento_servico',
     db.Column('agendamento_id', db.Integer, db.ForeignKey('agendamentos.id')),

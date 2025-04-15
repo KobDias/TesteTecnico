@@ -4,6 +4,69 @@
 <div class="container mt-5">
     {% if current_user.is_authenticated %}
         <h1 class="text-center mb-4">Olá, {{ current_user.nome }}!</h1>
+
+        {% if current_user.is_admin %}
+
+        <h1 class="mb-4">Lista de Agendamentos</h1>
+        {% if agendamentos %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Estado</th>
+                        <th>Serviços</th>
+                        <th>Confirmado</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agendamento in agendamentos %}
+                    <tr>
+                        <td>{{ agendamento.cliente.nome }}</td>
+                        <td>{{ agendamento.data.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {{ agendamento.estado.value | capitalize }}
+                        </td>
+                        <td>
+                            {% if agendamento.servicos %}
+                            {% for servico in agendamento.servicos %}
+                                {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                            {% else %}
+                            <p></p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if agendamento.is_confirmed %}
+                            <p>Sim</p>
+                            {% else %}
+                            <p>Não</p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('editarAgendamento', id=agendamento.id) }}" class="btn btn-outline-info">Editar</a>
+                            {% if agendamento.is_confirmed %}
+                            <a href="#" class="btn btn-success">Confirmado</a>
+                            {% else %}
+                            <a href="{{ url_for('confirmarAgendamento', id=agendamento.id) }}" class="btn btn-outline-success">Confirmar</a>
+                            {% endif %}
+                            <a href="{{ url_for('cancelarAgendamento', id=agendamento.id) }}" class="btn btn-outline-warning">Cancelar</a>
+                            <a href="{{ url_for('excluirAgendamento', id=agendamento.id) }}" class="btn btn-outline-danger">Excluir</a>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
+        {% endif %}
+        <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+        <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
+        <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
+
+        {% else %}
         <div class="card mb-4">
             <div class="card-body">
             <h5 class="card-title text-center">Quadro de Avisos</h5>
@@ -44,6 +107,7 @@
                 {% endif %}
                 </div>
     </div>
+    
         
         <h1 class="mb-4">Lista de Agendamentos</h1>
         {% if agendamentos %}
@@ -87,6 +151,7 @@
             <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
         {% endif %}
         <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+        {% endif %}
     {% else %}
         <h1 class="text-center">Olá! Esse é o sistema de agendamentos da Cabeleleila Leila!</h1>
         <p class="text-center mt-4">Você precisa estar logado para acessar ou criar agendamentos.</p>
