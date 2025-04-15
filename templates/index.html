@@ -25,9 +25,16 @@
                     <tr>
                         <td>{{ agendamento.cliente.nome }}</td>
                         <td>{{ agendamento.data.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
+                        <!-- Verificação de estado -->
+                        {% if agendamento.estado.value == 'pendente' %}
+                        <td class="bg-success text-white">
                             {{ agendamento.estado.value | capitalize }}
                         </td>
+                        {% else %}
+                        <td class="bg-secondary text-white">
+                            {{ agendamento.estado.value | capitalize }}
+                        </td>
+                        {% endif %}
                         <td>
                             {% for servico in agendamento.servicos %}
                                 {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
@@ -116,6 +123,7 @@
                     <tr>
                         <td>{{ agendamento.cliente.nome }}</td>
                         <td>{{ agendamento.data.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <!-- Verificação de estado -->
                         {% if agendamento.estado.value == 'pendente' %}
                         <td class="bg-success text-white">
                             {{ agendamento.estado.value | capitalize }}
@@ -125,11 +133,9 @@
                             {{ agendamento.estado.value | capitalize }}
                         </td>
                         {% endif %}
-
                         <td>
                             {% for servico in agendamento.servicos %}
-                                {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }}{% if not loop.last %}, {% endif %}
-                            {% endfor %}
+                                {{ servico.nome }} - R$ {{ "%.2f"|format(servico.preco) }} {% if not loop.last %}, {% endif %}{% endfor %}
                         </td>
                         <td>
                             {% if agendamento.is_confirmed %}
@@ -149,12 +155,13 @@
         {% else %}
             <div class="alert alert-warning">Nenhum agendamento encontrado.</div>
         {% endif %}
-        <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
-        {% if current_user.is_admin %}
-        <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
-        <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
+        
         {% endif %}
-        {% endif %}
+                <a href="{{ url_for('agendamentos') }}" class="btn btn-primary">Criar Agendamento</a>
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('cadastrarCliente') }}" class="btn btn-primary">Criar Cliente</a>
+                <a href="{{ url_for('servicos') }}" class="btn btn-primary">Cadastrar Servico</a>
+            {% endif %}
     {% else %}
         <h1 class="text-center">Olá! Esse é o sistema de agendamentos da Cabeleleila Leila!</h1>
         <p class="text-center mt-4">Você precisa estar logado para acessar ou criar agendamentos.</p>

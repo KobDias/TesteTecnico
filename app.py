@@ -32,6 +32,7 @@ def home():
     if current_user.is_authenticated: # se logado
         if current_user.is_admin: # se admin
             agendamentos = Agendamentos.query.order_by(Agendamentos.data.asc()) # pega todos os agendamentos
+            return render_template('index.html', agendamentos=agendamentos, semanas_com_multiplos={}) 
         else: # se não admin
             # Lógica de avisos de agendamentos na mesma semana
             agendamentos = Agendamentos.query.filter_by(clienteId=current_user.id).order_by(Agendamentos.data.asc()).all()
@@ -50,9 +51,8 @@ def home():
 
             # Filtrar semanas com múltiplos agendamentos
             semanas_com_multiplos = {semana: ags for semana, ags in agendamentos_por_semana.items() if len(ags) > 1}
-            return render_template('index.html',
-            agendamentos=agendamentos, # essa é a lista de agendamentos
-            semanas_com_multiplos=semanas_com_multiplos) 
+            return render_template('index.html', agendamentos=agendamentos, semanas_com_multiplos=semanas_com_multiplos) 
+    return render_template('index.html', agendamentos=[], semanas_com_multiplos={})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -114,12 +114,14 @@ def agendamentos():
 
             novoAgendamento = Agendamentos(
                 clienteId=cliente.id,
-                data=dataHora,       
+                data=dataHora,
+                is_confirmed=True, # se um admin fez, tá confirmado
             )
         else: # não sendo admin, cliente é current_user
             novoAgendamento = Agendamentos(
                 clienteId=current_user.id,
-                data=dataHora,       
+                data=dataHora
+                # por padrão, is_confirmed é false  
             )
         
         #independente do cliente ou data, servicos precisam ser inseridos
@@ -164,9 +166,9 @@ def editarAgendamento(id):
         # recebe os servicos selecionados (strings)
         novoServicos_ids = request.form.getlist('servicos')
 
-        if not novoServicos_ids: # se não há serviço selecionado
-            return "Não é possivel deixar o agendamento sem serviços"
-        else: 
+        if agendamento.data < datetime.now() or novoServicos_ids==[]:
+            return "Não é possivel marcar uma data passada ou deixar de escolher um serviço!"
+        else:
             idsAtuais = {s.id for s in agendamento.servicos} # pega os ids dos servicos já em agendamentos
             novos_ids = set(map(int, novoServicos_ids)) # converte para ints
             
@@ -190,19 +192,21 @@ def editarAgendamento(id):
     servicos = Servico.query.all()
     return render_template('editarAgendamento.html', agendamento=agendamento, servicos=servicos, estados=Estado, todos_servicos=todosServicos)
 
-@app.route('/cancelarAgendamento/<int:id>', methods=['POST', 'GET'])
+@app.route('/cancelarAgendamento/<int:id>', methods=['GET'])
 @login_required
 def cancelarAgendamento(id):
-    if not current_user.is_admin:
+    if current_user.is_admin:
+        agendamento = Agendamentos.query.get_or_404(id)
+        agendamento.estado = Estado.cancelado
+    else:
         agendamento = Agendamentos.query.get_or_404(id)
         dataAgendado = agendamento.data
         dataHoje = datetime.now()
         distancia = (dataAgendado - dataHoje).days
-        print("Sorriso")
         if abs(distancia) < 2:
             return "Infelizmente, cancelamentos só podem ser feitos até dois dias antes do agendamento. Ligue para a Leila em 55555555 para alterações."
-    agendamento.estado = Estado.cancelado
-    db.session.add(agendamento)
+        else:
+            agendamento.estado = Estado.cancelado
     db.session.commit()
     return redirect(url_for('home'))
 
