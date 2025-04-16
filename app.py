@@ -1,6 +1,6 @@
 from collections import defaultdict 
 # ↑ um tipo especial de array que preenche nulls
-from flask import Flask, flash, url_for, render_template, request, redirect, url_for, session
+from flask import Flask, url_for, render_template, request, redirect, url_for
 # ↑ importação do flask e ferramentas para redirecionamento
 from db import db
 from models import Cliente, Agendamentos, Servico, Estado
@@ -314,9 +314,8 @@ def cadastrarCliente():
             email = request.form['email']
             telefone = request.form['telefone']
             senha = request.form['senha']
-            adm = request.form.get('adm') # se admin ou não
 
-            novo_cliente = Cliente(nome=nome, email=email, telefone=telefone, senha=hash(senha), is_admin=adm)
+            novo_cliente = Cliente(nome=nome, email=email, telefone=telefone, senha=hash(senha))
             db.session.add(novo_cliente)
             db.session.commit()
             return redirect(url_for('home'))

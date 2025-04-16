@@ -1,10 +1,53 @@
-```markdown
-# Como Executar o Projeto
+# Sistema de Agendamentos - Cabeleleila Leila
+
+Este é um sistema de agendamentos desenvolvido em Flask para gerenciar clientes, serviços e agendamentos de forma eficiente.
+
+## Funcionalidades
+
+- Cadastro e login de clientes.
+- Criação, edição e cancelamento de agendamentos.
+- Gerenciamento de serviços.
+- Painel administrativo para gerenciar clientes, agendamentos e serviços oferecidos.
+- Sistema de autenticação com controle de acesso para administradores e clientes.
+
+## Tecnologias Utilizadas
+
+- **Backend**: Flask, Flask-Login, Flask-SQLAlchemy
+- **Banco de Dados**: SQLite
+- **Frontend**: Bootstrap 4
+- **Outras Dependências**: SQLAlchemy, Jinja2
+
+## Estrutura do Projeto
+
+```
+TesteTecnico/
+    .gitignore
+    app.py
+    db.py
+   instance/
+       cabeleleila.db
+    models.py
+    README.md
+    requirements.txt
+    servico.py
+    templates/
+        cadastreCliente.html
+        cadastreServico.html
+        cadastro.html
+        criarAgendamento.html
+        editarAgendamento.html
+        header.html
+        index.html
+        login.html
+```
 
 ## Pré-requisitos
+
 - Python 3.10+ instalado
 - Git instalado
 - pip (gerenciador de pacotes do Python)
+
+# Como Executar o Projeto
 
 ## Passo a Passo
 
@@ -14,7 +57,7 @@
    cd TesteTecnico
    ```
 
-2. **Crie um ambiente virtual** (recomendado):
+2. **Crie um ambiente virtual**:
    ```bash
    python -m venv venv
    ```
@@ -34,35 +77,16 @@
    pip install -r requirements.txt
    ```
 
-5. **Configure o banco de dados**:
-   ```bash
-   flask db init          # Inicializa migrações (se necessário)
-   flask db migrate       # Cria migração
-   flask db upgrade       # Aplica migrações ao banco
-   ```
 
-6. **Execute o servidor**:
+5. **Execute o servidor**:
    ```bash
    flask run
    ```
 
-7. **Acesse a aplicação**:
-   Abra no navegador:  
-   http://localhost:5000
+6. **Acesse a aplicação**:
 
-## Dicas
-- 🛠️ Para criar um usuário admin, use o Flask Shell:
-  ```bash
-  flask shell
-  >>> from models import Cliente
-  >>> admin = Cliente(nome="Admin", email="admin@exemplo.com", senha="senha123")
-  >>> db.session.add(admin)
-  >>> db.session.commit()
-  ```
-- 🔧 Se houver um `requirements-dev.txt`, instale dependências de desenvolvimento:
-  ```bash
-  pip install -r requirements-dev.txt
-  ```
-
-✨ **Pronto!** O sistema de agendamentos estará rodando localmente.
-```
+   Abra no navegador:
+      
+   ```
+   http://127.0.0.1:5000/
+   ```
