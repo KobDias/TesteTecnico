@@ -90,5 +90,5 @@ TesteTecnico/
 ## Adicional
 
 Se quiser logar como administrador para testar as funcionalidades, por padrão:
-   email = admin@cabeleleila.com
-   senha = admin123
+- email = admin@cabeleleila.com
+- senha = admin123
