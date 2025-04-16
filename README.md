@@ -86,4 +86,9 @@ TesteTecnico/
       
    ```
    http://127.0.0.1:5000/
-   ```
+   ``
+## Adicional
+
+Se quiser logar como administrador para testar as funcionalidades, por padrão:
+   email = admin@cabeleleila.com
+   senha = admin123
