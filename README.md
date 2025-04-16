@@ -24,8 +24,6 @@ TesteTecnico/
     .gitignore
     app.py
     db.py
-   instance/
-       cabeleleila.db
     models.py
     README.md
     requirements.txt
@@ -57,7 +55,6 @@ TesteTecnico/
    cd TesteTecnico
    ```
 
-2. **Crie um ambiente virtual**:
 2. **Crie um ambiente virtual**:
    ```bash
    python -m venv venv
